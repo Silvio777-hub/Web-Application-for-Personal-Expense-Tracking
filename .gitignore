@@ -1,0 +1,42 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+bin/
+
+# Databases
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+
+# Dependency directories
+vendor/
+
+# User uploads
+public/uploads/*
+!public/uploads/.gitkeep
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Secrets and Environment
+.env
+.env.local
+*.rar
+
+# User uploads root
+uploads/*
+!uploads/.gitkeep
+uploads/profiles/*
+!uploads/profiles/.gitkeep
+uploads/receipts/*
+!uploads/receipts/.gitkeep

@@ -1,0 +1,268 @@
+{{define "layout"}}
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{template "title" .}} - Personal Expense Tracker</title>
+
+    <!-- PWA Configuration -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#06b6d4">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Expenses">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/1041/1041916.png">
+
+    <link rel="stylesheet" href="/css/style.css?v=16.0">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"
+        integrity="sha512-CN7A3as82SAt9M74p+e76GzEunA0Hn1s/T8/O6v72Y7K+6E18G6V0G09U6YI0u3G5r83N75tL08761E/V2L9WfA=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').then(reg => {
+                    console.log('SW Registered:', reg.scope);
+                }).catch(err => {
+                    console.warn('SW Registration failed:', err);
+                });
+            });
+        }
+    </script>
+    <style>
+        /* CRITICAL OVERRIDE: Supersized Buttons & Text */
+        html body .btn {
+            height: 65px !important;
+            padding: 0 2.5rem !important;
+            border-radius: 16px !important;
+            font-weight: 900 !important;
+            font-size: 1.4rem !important;
+        }
+
+        /* Override Tab Buttons */
+        html body .tab-btn {
+            font-size: 1.25rem !important;
+            padding: 1rem 2rem !important;
+        }
+
+        /* Override Modal Headers */
+        html body .modal-header h3 {
+            font-size: 1.8rem !important;
+        }
+
+        /* Override Auth Inputs */
+        html body .glass-input {
+            font-size: 1.3rem !important;
+            height: 60px !important;
+        }
+
+        /* CRITICAL: Supersize User Profile */
+        html body .nav-avatar,
+        html body .nav-avatar-placeholder,
+        html body .avatar-container,
+        html body .profile-preview-large {
+            width: 140px !important;
+            height: 140px !important;
+            min-width: 140px !important;
+            /* Prevent squashing */
+            min-height: 140px !important;
+            border-radius: 50% !important;
+        }
+
+        html body .nav-avatar,
+        html body .nav-avatar-placeholder,
+        html body .profile-preview-large {
+            border: 3px solid var(--primary) !important;
+            object-fit: cover !important;
+            /* Ensure image covers the circle */
+        }
+
+        html body .user-link {
+            font-size: 1.5rem !important;
+            font-weight: 900 !important;
+            margin-left: 0.5rem !important;
+        }
+
+        /* Ensure header accommodates the larger profile */
+        html body .user-profile {
+            gap: 1rem !important;
+        }
+    </style>
+    <style>
+        /* CRITICAL OVERRIDE: Uniform System-Wide Typography */
+
+        /* Base Text */
+        html body {
+            font-size: 1.35rem !important;
+            /* Explicit Base */
+        }
+
+        /* Headers */
+        html body h1 {
+            font-size: 2.2rem !important;
+            font-weight: 900 !important;
+        }
+
+        html body h2 {
+            font-size: 2.5rem !important;
+            font-weight: 800 !important;
+        }
+
+        html body h3 {
+            font-size: 1.8rem !important;
+            font-weight: 800 !important;
+        }
+
+        /* Interactive Elements - Uniform "Large" Size */
+        html body .btn,
+        html body .btn-primary,
+        html body .btn-secondary,
+        html body .btn-danger,
+        html body #view-trash-btn,
+        html body .btn-compact,
+        html body button[type="submit"],
+        html body .glass-input,
+        html body select.glass-input {
+            height: 65px !important;
+            font-size: 1.4rem !important;
+            border-radius: 16px !important;
+        }
+
+        /* Specific Button Tweaks */
+        html body button[type="submit"],
+        html body .btn-primary,
+        html body #view-trash-btn {
+            padding: 0 2.5rem !important;
+            font-weight: 900 !important;
+            min-width: 160px !important;
+            line-height: normal !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+        }
+
+        /* Form Labels */
+        html body label {
+            font-size: 1.25rem !important;
+            font-weight: 700 !important;
+            margin-bottom: 0.5rem !important;
+        }
+
+        /* Tabs */
+        html body .tab-btn {
+            font-size: 1.25rem !important;
+            padding: 1rem 2rem !important;
+            height: auto !important;
+        }
+
+        /* Helper Text */
+        html body .small,
+        html body .text-muted,
+        html body .forgot-link {
+            font-size: 1.1rem !important;
+        }
+
+        /* Modal Fixes */
+        html body .modal-content {
+            padding: 2.5rem !important;
+            /* Breathing room */
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Announcement Banner -->
+    <div id="announcement-banner" class="hidden glass-banner">
+        <span id="announcement-text"></span>
+        <button class="btn-icon" onclick="this.parentElement.classList.add('hidden')">×</button>
+    </div>
+
+    <!-- Impersonation Banner -->
+    <div id="impersonation-banner" class="hidden warning-banner tc">
+        <span data-i18n="impersonating_msg">VIEWING AS USER (READ-ONLY)</span>
+        <button class="btn-compact ml-1" onclick="window.stopImpersonating()" data-i18n="stop_impersonating"
+            style="background: #000; color: #fff;">Stop</button>
+    </div>
+    <header class="glass">
+        <div class="header-content container">
+            <div class="logo">
+                <h1>Expense Tracker</h1>
+            </div>
+
+            <div class="nav-center hidden">
+                <button id="pwa-install-btn" class="btn-icon hidden" title="Install App">
+                    <span>📲</span>
+                    <span data-i18n="install_app">Install</span>
+                </button>
+                <button id="nav-add-expense-btn" class="btn-icon">
+                    <span class="plus-icon">+</span>
+                    <span data-i18n="new_expense">New Expense</span>
+                </button>
+
+                <button id="dashboard-btn" class="btn-icon hidden" data-i18n="financial_overview">Dashboard</button>
+                <button id="admin-btn" class="btn-icon hidden" data-i18n="admin_panel">Admin Panel</button>
+                <button id="settings-btn" class="btn-icon" data-i18n="preferences">Settings</button>
+                <button id="theme-btn" class="btn-icon" data-i18n="theme">Theme</button>
+                <button id="logout-btn" class="btn-icon" data-i18n="logout">Logout</button>
+            </div>
+
+            <div id="user-nav" class="user-profile hidden">
+                <div id="user-avatar-container" class="avatar-container">
+                    <img id="nav-avatar" src="" alt="" class="nav-avatar hidden">
+                    <div id="nav-avatar-placeholder" class="nav-avatar-placeholder"></div>
+                </div>
+                <span id="username-display" class="user-link"></span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        {{template "content" .}}
+    </main>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container"></div>
+
+    <!-- Bulk Action Bar -->
+    <div id="bulk-action-bar" class="hidden">
+        <div class="bulk-info">
+            <span class="bulk-info-icon">✓</span>
+            <span id="selected-count">0 selected</span>
+        </div>
+        <div class="bulk-actions">
+            <button class="bulk-btn bulk-btn-export" onclick="window.handleBulkExport()">
+                📥 Export Selected
+            </button>
+            <button class="bulk-btn bulk-btn-delete" onclick="window.handleBulkDelete()">
+                🗑️ Delete Selected
+            </button>
+            <button class="bulk-btn bulk-btn-cancel" onclick="window.clearBulkSelection()">
+                Cancel
+            </button>
+        </div>
+    </div>
+
+    <footer class="glass">
+        <div class="container tc">
+            <p>&copy; 2026 Personal Expense Tracker - Developed by JM Silvio</p>
+        </div>
+    </footer>
+
+    <!-- System Diagnostic Overlay -->
+    <div
+        style="position: fixed; bottom: 5px; right: 5px; font-size: 0.65rem; opacity: 0.8; z-index: 9999; font-family: monospace; display: flex; gap: 10px; background: rgba(0,0,0,0.1); padding: 2px 5px; border-radius: 4px; align-items: center;">
+        <span>JS: <span id="diag-js" style="color: #e74c3c;">FAIL</span></span>
+        <span>API: <span id="diag-api" style="color: #e74c3c;">FAIL</span></span>
+        <button onclick="localStorage.clear(); sessionStorage.clear(); location.href='/';"
+            style="cursor: pointer; border: 1px solid #777; background: #fff; padding: 1px 3px; font-size: 0.6rem; border-radius: 2px;">REBOOT</button>
+    </div>
+
+    <script src="/js/translations.js?v={{.Timestamp}}"></script>
+    <script type="module" src="/js/app.js?v={{.Timestamp}}"></script>
+</body>
+
+</html>
+{{end}}

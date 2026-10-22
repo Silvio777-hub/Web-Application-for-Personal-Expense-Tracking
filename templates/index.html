@@ -1,0 +1,636 @@
+{{define "title"}}Dashboard{{end}}
+
+{{define "content"}}
+<!-- Admin Impersonation Banner (Transparency) -->
+<div id="impersonation-banner" class="hidden glass p-1 tc animate-fade-in"
+    style="background: linear-gradient(135deg, #e74c3c, #f39c12); color: white; border-radius: 0; position: sticky; top: 0; z-index: 1000; font-weight: 700; font-size: 0.9rem;">
+    <span data-i18n="admin_session_active">ADMINISTRATIVE SESSION ACTIVE - YOUR DASHBOARD IS CURRENTLY READ-ONLY</span>
+</div>
+
+<!-- Auth Section -->
+<section id="auth-section" class="flex-center">
+    <div class="auth-card glass card">
+        <h2 id="auth-title" data-i18n="welcome_back">Login</h2>
+        <p class="auth-subtitle tc mb-2" data-i18n="login_subtitle">To Continue please fill your Login details</p>
+        <form id="auth-form" onsubmit="return false;">
+            <div class="form-group">
+                <!-- Clean Input: No Label, No Icons, Just Placeholder -->
+                <input type="text" id="username" class="glass-input" placeholder="Username" required>
+            </div>
+            <div class="form-group hidden" id="email-group">
+                <input type="email" id="email" class="glass-input" placeholder="Email">
+            </div>
+            <div class="form-group">
+                <!-- Clean Password Input -->
+                <div class="password-container">
+                    <input type="password" id="password" class="glass-input" placeholder="Password" required>
+                    <button type="button" class="password-toggle" onclick="togglePasswordVisibility('password')">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="auth-footer-row mt-2 mb-2">
+                <label class="remember-me flex-center" style="gap: 0.5rem; cursor: pointer;">
+                    <input type="checkbox" id="remember-me">
+                    <span data-i18n="remember_me">Remember me</span>
+                </label>
+                <a href="#" id="forgot-password-link" class="small text-muted" data-i18n="forgot_password">Forgot
+                    Password?</a>
+            </div>
+
+            <button type="submit" id="auth-submit" class="btn-primary full-width" data-i18n="login">Login</button>
+            <!-- Register link removed as requested -->
+        </form>
+    </div>
+</section>
+
+<!-- Dashboard Section -->
+<section id="dashboard-section" class="hidden">
+    <div class="dashboard-header mb-2">
+        <h2 data-i18n="financial_overview">Financial Overview</h2>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card glass card">
+            <div class="flex-between align-center mb-1">
+                <h3 data-i18n="total_balance">Total Balance</h3>
+                <span class="click-indicator small">Analysis</span>
+            </div>
+            <p class="amount" id="total-balance">$0.00</p>
+        </div>
+        <div class="stat-card glass card">
+            <div class="flex-between align-center mb-1">
+                <h3 data-i18n="monthly_spending">Monthly Spending</h3>
+                <span class="click-indicator small">Trends</span>
+            </div>
+            <p class="amount" id="month-spending">$0.00</p>
+            <div class="progress-bar">
+                <div id="month-spending-progress" class="progress" style="width: 0%;"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Currency Converter Tool (Live API Demo) -->
+    <div class="card mb-2 animate-fade-in" id="currency-converter-card">
+        <div class="card-header">
+            <h3 data-i18n="currency_converter">Live Currency Converter</h3>
+        </div>
+        <div class="card-body">
+            <div class="currency-flex">
+                <input type="number" id="convert-amount" class="glass-input large-control" data-i18n="amount"
+                    placeholder="Amount" value="100">
+                <select id="convert-from" class="glass-input large-control">
+                    <option value="USD">USD</option>
+                    <option value="EUR">EUR</option>
+                    <option value="GBP">GBP</option>
+                    <option value="JPY">JPY</option>
+                </select>
+                <span class="btn-icon" style="font-weight: 800; font-size: 1.2rem;">to</span>
+                <select id="convert-to" class="glass-input large-control">
+                    <option value="EUR">EUR</option>
+                    <option value="USD">USD</option>
+                    <option value="GBP">GBP</option>
+                    <option value="JPY">JPY</option>
+                </select>
+                <button id="convert-btn" class="btn-primary large-control" data-i18n="convert">Convert</button>
+            </div>
+            <div id="conversion-result" class="mt-1 font-weight-900 tc" style="color: var(--primary-color);"></div>
+        </div>
+    </div>
+
+    <div class="content-grid" id="main-content-grid">
+        <div class="chart-container glass card">
+            <div class="card-header flex-center" style="justify-content: space-between;">
+                <h3 data-i18n="top_categories">Top Spending Categories</h3>
+                <span class="text-muted small" data-i18n="by_volume">By Total Volume</span>
+            </div>
+            <div id="top-categories-list" class="mt-1" style="max-height: 250px; overflow-y: auto;">
+                <!-- Ranked categories will be rendered here -->
+                <p class="tc p-2 text-muted" data-i18n="analyzing">Analyzing your spending...</p>
+            </div>
+        </div>
+
+        <div class="chart-container glass card">
+            <div class="card-header">
+                <h3 data-i18n="category_dist">Category Distribution</h3>
+            </div>
+            <div style="height: 250px;">
+                <canvas id="categoryChart"></canvas>
+            </div>
+        </div>
+
+        <div class="chart-container glass card" style="grid-column: 1 / -1;">
+            <div class="card-header">
+                <h3 data-i18n="spending_trend">Spending Trend (MoM)</h3>
+            </div>
+            <div style="height: 250px;">
+                <canvas id="spendingTrendChart"></canvas>
+            </div>
+        </div>
+
+
+
+        <!-- NEW: Savings Goal Tracker -->
+        <div class="stat-card glass card special-highlight" style="grid-column: 1 / -1;">
+            <div class="flex-center" style="justify-content: space-between;">
+                <h3 data-i18n="monthly_savings_goal">Monthly Savings Goal</h3>
+                <span id="savings-percent" class="font-weight-900">0%</span>
+            </div>
+            <div class="progress-bar big mt-1">
+                <div id="savings-progress-bar" class="progress" style="width: 0%;"></div>
+            </div>
+            <p class="text-muted small mt-1" id="savings-math-display">
+                <span data-i18n="goal">Goal</span>: <span id="math-goal" class="font-weight-bold">$0</span>
+                - <span data-i18n="spent">Spent</span>: <span id="math-spent" class="font-weight-bold">$0</span>
+                = <span data-i18n="remaining">Remaining</span>: <span id="math-remaining"
+                    class="font-weight-900">$0</span>
+            </p>
+        </div>
+
+
+
+        <div class="recent-list glass card" style="grid-column: 1 / -1;">
+            <div class="card-header flex-center ultra-compact-header">
+                <div class="flex-center" style="gap: 10px;">
+                    <input type="checkbox" id="select-all-expenses" title="Select All"
+                        style="width: 18px; height: 18px; cursor: pointer;">
+                    <h3 data-i18n="recent_transactions">Recent Transactions</h3>
+                </div>
+                <div class="compact-controls-row flex-center">
+                    <div id="custom-date-picker" class="hidden flex-center" style="gap: 5px;">
+                        <input type="date" id="filter-start-date" class="glass-input">
+                        <span data-i18n="to">to</span>
+                        <input type="date" id="filter-end-date" class="glass-input">
+                        <button id="apply-filter-btn" class="btn-primary" data-i18n="apply">Apply</button>
+                    </div>
+                    <select id="expense-filter" class="glass-input compact-select">
+                        <option value="" data-i18n="all_time">All Time</option>
+                        <option value="weekly" data-i18n="this_week">This Week</option>
+                        <option value="monthly" data-i18n="this_month">This Month</option>
+                        <option value="yearly" data-i18n="this_year">This Year</option>
+                        <option value="custom" data-i18n="custom_range">Custom Range</option>
+                    </select>
+                    <div class="search-box">
+                        <input type="text" id="expense-search" class="glass-input compact-input"
+                            data-i18n="search_placeholder" placeholder="Search...">
+                    </div>
+                    <div class="amount-range flex-center">
+                        <input type="number" id="filter-min-amount" class="glass-input compact-input-min"
+                            data-i18n="min" placeholder="Min">
+                        <span class="range-sep">-</span>
+                        <input type="number" id="filter-max-amount" class="glass-input compact-input-max"
+                            data-i18n="max" placeholder="Max">
+                    </div>
+                    <button id="export-btn" class="btn-primary btn-compact" data-i18n="export_csv">Export CSV</button>
+                    <button id="view-trash-btn" class="btn-icon btn-compact" title="Trash"
+                        data-i18n="trash">Trash</button>
+                </div>
+            </div>
+            <div id="expenses-list" class="scroll-list">
+                <!-- Dynamic Items -->
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Admin Section -->
+<section id="admin-section" class="hidden">
+    <div class="admin-header mb-2">
+        <h2 data-i18n="admin_panel">Administrative Panel</h2>
+    </div>
+
+    <!-- Platform Overview Cards -->
+    <div class="stats-grid mb-2">
+        <div class="stat-card glass card">
+            <h3 data-i18n="total_users_registered">Total Registered Users</h3>
+            <p class="stat-value" id="admin-total-users">0</p>
+        </div>
+        <div class="stat-card glass card">
+            <h3 data-i18n="platform_volume">Total Expenses on the Platform</h3>
+            <p class="stat-value" id="admin-total-volume">$0.00</p>
+        </div>
+
+    </div>
+    <div class="admin-grid">
+        <!-- System Settings -->
+        <div class="admin-card glass card">
+            <div class="admin-card-header" onclick="toggleAdminSection('sys-controls')">
+                <h3 data-i18n="system_settings">System Controls</h3>
+                <span class="click-indicator" data-i18n="view_info">View Info +</span>
+            </div>
+            <div id="admin-sys-controls" class="mt-1 hidden">
+                <div class="flex-column gap-1" style="display: flex; flex-direction: column; gap: 1rem;">
+                    <div class="flex-between glass p-1 b-radius"
+                        style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; border-radius: 12px; background: rgba(255,255,255,0.05);">
+                        <div>
+                            <h4 data-i18n="maintenance_mode">Maintenance Mode</h4>
+                            <p class="text-muted small" data-i18n="maintenance_desc">Admins only. Block all other
+                                traffic.</p>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="maintenance-toggle">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="glass p-1 b-radius"
+                        style="padding: 1rem; border-radius: 12px; background: rgba(255,255,255,0.05);">
+                        <h4 data-i18n="global_announcement">Global Announcement</h4>
+                        <div class="flex-center gap-05 mt-1" style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                            <input type="text" id="announcement-input" class="glass-input" style="flex: 1;"
+                                placeholder="Type message here...">
+                            <button class="btn-primary" id="save-announcement-btn"
+                                data-i18n="update_message">Update</button>
+                        </div>
+                    </div>
+
+                    <div class="glass p-1 b-radius tc"
+                        style="padding: 1rem; border-radius: 12px; background: rgba(255,255,255,0.05); text-align: center;">
+                        <button class="btn-primary" id="admin-export-all-btn" style="width: 100%;">
+                            <span data-i18n="export_all">Export All Data (CSV)</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Health & Utilities (New Danger Zone) -->
+        <div class="admin-card glass card" style="border: 1px solid rgba(231, 76, 60, 0.3);">
+            <div class="admin-card-header" onclick="toggleAdminSection('sys-health')">
+                <h3 data-i18n="sys_health">System Health & Tools</h3>
+                <span class="click-indicator" data-i18n="view_info">View Info +</span>
+            </div>
+            <div id="admin-sys-health" class="mt-1 hidden p-1">
+                <div class="glass p-1 b-radius flex-column gap-1"
+                    style="display: flex; flex-direction: column; gap: 1rem; background: rgba(231, 71, 60, 0.05); padding: 1rem; border-radius: 12px;">
+                    <h4 class="text-danger" data-i18n="danger_zone">Danger Zone</h4>
+                    <p class="text-muted small" data-i18n="sys_health_desc">Perform critical system operations.</p>
+                    <button class="btn-secondary" id="admin-create-backup-btn" style="width: 100%;">
+                        <span data-i18n="create_hot_backup">Create Hot Database Backup</span>
+                    </button>
+                    <p id="backup-status" class="tiny tc mt-05 text-muted"></p>
+                    <hr class="mt-1 mb-1">
+                    <button class="btn-danger" id="admin-clear-logs-btn" style="width: 100%;">
+                        <span data-i18n="clear_activity_logs">Clear Recent Activity Logs</span>
+                    </button>
+                    <button class="btn-danger mt-1" id="admin-clear-transactions-btn" style="width: 100%;">
+                        <span data-i18n="clear_all_transactions">Clear All Transactions Log</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Expandable User Management -->
+        <div class="admin-card glass card">
+            <div class="admin-card-header" onclick="toggleAdminSection('user-mgmt')">
+                <h3 data-i18n="user_mgmt">User Management</h3>
+                <span class="click-indicator" data-i18n="view_info">View Info +</span>
+            </div>
+            <div id="admin-user-mgmt" class="mt-1 hidden">
+                <div id="users-list-container">
+                    <!-- User items will be rendered here -->
+                </div>
+                <h4 class="mt-1 mb-1" data-i18n="register_new_user">Register New User</h4>
+                <form id="admin-register-form">
+                    <div class="form-group">
+                        <label data-i18n="username">Username</label>
+                        <input type="text" id="reg-username" class="glass-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label data-i18n="email">Email</label>
+                        <input type="email" id="reg-email" class="glass-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label data-i18n="password">Password</label>
+                        <input type="password" id="reg-password" class="glass-input" required>
+                    </div>
+                    <button type="submit" class="btn-primary full-width" data-i18n="create_account">Create User
+                        Account</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Expandable System Status -->
+        <div class="admin-card glass card">
+            <div class="admin-card-header" onclick="toggleAdminSection('sys-status')">
+                <h3 data-i18n="system_status">System Status & Analytics</h3>
+                <span class="click-indicator" data-i18n="view_info">View Info +</span>
+            </div>
+            <div id="admin-sys-status" class="mt-1 hidden">
+                <div id="system-stats-display">
+                    <!-- General stats -->
+                </div>
+
+                <h4 class="mt-1 mb-1" data-i18n="per_user_spending">Per-User Spending Breakdown</h4>
+                <div id="user-spending-table" class="glass mt-1"
+                    style="max-height: 200px; overflow-y: auto; padding: 1rem; border-radius: 12px; font-size: 0.9rem;">
+                    <!-- Spending table will be rendered here -->
+                    <p class="tc text-muted" data-i18n="loading">Loading breakdown...</p>
+                </div>
+
+                <h4 class="mt-1 mb-1" data-i18n="recent_logs">Recent Activity Logs</h4>
+                <div id="admin-audit-logs" class="glass mt-1"
+                    style="max-height: 200px; overflow-y: auto; padding: 1rem; border-radius: 12px; font-size: 0.85rem; font-family: monospace;">
+                    <!-- Logs will be rendered here -->
+                    <p class="tc text-muted" data-i18n="loading_logs">Loading logs...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Global Transaction Log (Expandable) -->
+        <div class="admin-card glass card">
+            <div class="admin-card-header" onclick="toggleAdminSection('transaction-log')">
+                <h3 data-i18n="global_transactions">Global Transaction Log</h3>
+                <span class="click-indicator" data-i18n="view_info">View Info +</span>
+            </div>
+            <div id="admin-transaction-log" class="mt-2 hidden">
+                <div class="table-container glass mt-1" style="max-height: 400px; overflow-y: auto;">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th data-i18n="user">User</th>
+                                <th data-i18n="date">Date</th>
+                                <th data-i18n="description">Description</th>
+                                <th data-i18n="amount">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody id="global-expenses-list">
+                            <!-- Filled by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Settings Modal -->
+<div id="settings-modal" class="modal hidden">
+    <div class="modal-content glass card animate-scale" style="max-width: 550px;">
+        <div class="modal-header">
+            <h3 data-i18n="account_settings">Account Settings</h3>
+            <button class="btn-icon" onclick="closeModal('settings-modal')" data-i18n="close">Close</button>
+        </div>
+
+        <!-- Tabs Navigation -->
+        <div class="settings-tabs flex-center">
+            <button class="tab-btn active" data-tab="tab-profile" data-i18n="profile">Profile</button>
+            <button class="tab-btn" data-tab="tab-security" data-i18n="security">Security</button>
+            <button class="tab-btn" data-tab="tab-preferences" data-i18n="preferences">Preferences</button>
+        </div>
+
+        <div class="settings-content">
+            <!-- Profile Tab -->
+            <div id="tab-profile" class="tab-pane active">
+                <form id="settings-form">
+                    <div class="profile-upload-zone">
+                        <div id="profile-preview" class="profile-preview-large"></div>
+                        <div class="upload-controls">
+                            <label for="profile-pic-input" class="btn-icon" data-i18n="upload_photo">Upload New
+                                Photo</label>
+                            <input type="file" id="profile-pic-input" class="hidden"
+                                accept="image/jpeg,image/png,image/jpg">
+                            <p class="text-muted small" data-i18n="supports_formats">Supports JPG, PNG (Max 20MB)</p>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label data-i18n="email_address">Email Address</label>
+                        <input type="email" id="set-email" class="glass-input" required>
+                    </div>
+                    <button type="submit" class="btn-primary full-width" data-i18n="save_profile">Save Profile
+                        Changes</button>
+                </form>
+            </div>
+
+
+
+            <!-- Security Tab -->
+            <div id="tab-security" class="tab-pane hidden">
+                <form id="password-form">
+                    <div class="form-group">
+                        <label data-i18n="current_password">Current Password</label>
+                        <input type="password" id="current-pass" class="glass-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label data-i18n="new_password">New Password</label>
+                        <input type="password" id="new-pass" class="glass-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label data-i18n="confirm_password">Confirm New Password</label>
+                        <input type="password" id="confirm-pass" class="glass-input" required>
+                    </div>
+                    <button type="submit" class="btn-primary full-width" data-i18n="update_password">Update
+                        Password</button>
+                </form>
+
+                <hr class="mt-2 mb-2">
+
+
+            </div>
+
+            <!-- Preferences Tab -->
+            <div id="tab-preferences" class="tab-pane hidden">
+                <form id="preferences-form">
+                    <div class="form-group">
+                        <label data-i18n="monthly_savings_goal">Monthly Savings Goal</label>
+                        <input type="number" id="set-monthly-savings-goal" class="glass-input" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label data-i18n="primary_currency">Primary Currency</label>
+                        <select id="set-currency" class="glass-input">
+                            <option value="USD">USD ($)</option>
+                            <option value="EUR">EUR (€)</option>
+                            <option value="GBP">GBP (£)</option>
+                            <option value="JPY">JPY (¥)</option>
+                            <option value="CNY">CNY (¥)</option>
+                            <option value="KRW">KRW (₩)</option>
+                            <option value="RUB">RUB (₽)</option>
+                            <option value="BRL">BRL (R$)</option>
+                            <option value="IDR">IDR (Rp)</option>
+                            <option value="TRY">TRY (₺)</option>
+                            <option value="SSP">SSP (£)</option>
+                            <option value="UGX">UGX (USh)</option>
+                            <option value="BDT">BDT (৳)</option>
+                            <option value="PKR">PKR (₨)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label data-i18n="language">Language</label>
+                        <select id="set-language" class="glass-input">
+                            <option value="ach">Acholi</option>
+                            <option value="ar">Arabic</option>
+                            <option value="bn">Bengali</option>
+                            <option value="zh">Chinese</option>
+                            <option value="en">English</option>
+                            <option value="fr">French</option>
+                            <option value="de">German</option>
+                            <option value="id">Indonesian</option>
+                            <option value="it">Italian</option>
+                            <option value="ja">Japanese</option>
+                            <option value="ko">Korean</option>
+                            <option value="ln">Lingala</option>
+                            <option value="lg">Luganda</option>
+                            <option value="madi">Ma'di ti</option>
+                            <option value="pt">Portuguese</option>
+                            <option value="ru">Russian</option>
+                            <option value="es">Spanish</option>
+                            <option value="sw">Swahili</option>
+                            <option value="tr">Turkish</option>
+                            <option value="ur">Urdu</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label data-i18n="date_format">Date Format</label>
+                        <select id="set-date-format" class="glass-input">
+                            <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+                            <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+                            <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+                        </select>
+                    </div>
+                    <div class="form-group"
+                        style="flex-direction: row; align-items: center; justify-content: space-between;">
+                        <label style="margin-bottom: 0;" data-i18n="email_notifications">Email Notifications</label>
+                        <input type="checkbox" id="set-notify" style="width: 20px; height: 20px;">
+                    </div>
+                    <button type="submit" class="btn-primary full-width" data-i18n="save_preferences">Save
+                        Preferences</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Expense Modal -->
+<div id="expense-modal" class="modal hidden">
+    <div class="modal-content glass card animate-scale">
+        <div class="modal-header">
+            <h3 data-i18n="add_transaction">Add Transaction</h3>
+            <button id="close-modal" class="btn-icon" data-i18n="close">
+                Close
+            </button>
+        </div>
+        <form id="expense-form">
+            <input type="hidden" id="exp-id">
+            <div class="form-group">
+                <label data-i18n="transaction_date">Transaction Date</label>
+                <input type="date" id="exp-date" class="glass-input" required>
+            </div>
+            <div class="form-row">
+                <div class="form-group flex-1">
+                    <label data-i18n="amount">Amount</label>
+                    <input type="number" id="exp-amount" step="0.01" class="glass-input" required>
+                </div>
+                <div class="form-group flex-1">
+                    <label data-i18n="category">Category</label>
+                    <select id="exp-category" class="glass-input" required></select>
+                </div>
+            </div>
+
+
+            <div class="form-group">
+                <label data-i18n="description">Description</label>
+                <input type="text" id="exp-desc" class="glass-input" data-i18n="what_buy"
+                    placeholder="What did you buy?">
+            </div>
+            <div class="form-group">
+                <label data-i18n="receipt_upload">Receipt Upload</label>
+                <div class="file-drop-zone" onclick="document.getElementById('exp-receipt').click()">
+                    <div class="receipt-flex-container flex-center" style="flex-direction: column;">
+                        <p id="receipt-status" data-i18n="click_upload">Click to upload receipt image</p>
+                        <p class="text-muted small" data-i18n="supports_formats">Supports JPG, PNG (Max 20MB)</p>
+                        <button type="button" id="clear-receipt" class="clear-receipt-btn hidden"
+                            onclick="event.stopPropagation(); clearReceipt()">Clear</button>
+                    </div>
+                    <input type="file" id="exp-receipt" class="hidden" accept="image/*,application/pdf">
+                </div>
+                <input type="hidden" id="exp-receipt-url">
+            </div>
+            <button type="submit" id="add-expense-submit" class="btn-primary full-width"
+                data-i18n="save_transaction">Save Transaction</button>
+        </form>
+    </div>
+</div>
+
+
+
+<!-- Password Reset Modal -->
+<div id="reset-modal" class="modal hidden">
+    <div class="modal-content glass card animate-scale" style="max-width: 400px;">
+        <div class="modal-header">
+            <h3 data-i18n="reset_password">Reset Password</h3>
+            <button class="btn-icon" onclick="closeModal('reset-modal')" data-i18n="close">Close</button>
+        </div>
+
+        <!-- Step 1: Request Recovery Link -->
+        <div id="reset-step-1">
+            <p class="text-muted small mb-1" data-i18n="enter_email_link">Enter your email and we'll send you a
+                recovery link.</p>
+            <form id="reset-request-form">
+                <div class="form-group">
+                    <label data-i18n="email_address">Email Address</label>
+                    <input type="email" id="reset-email-input" class="glass-input" required
+                        data-i18n="email_placeholder" placeholder="your@email.com">
+                </div>
+                <button type="submit" class="btn-primary full-width" data-i18n="send_link">Send Recovery Link</button>
+            </form>
+        </div>
+
+        <!-- Step 2: Set New Password -->
+        <div id="reset-step-2" class="hidden">
+            <p class="text-muted small mb-1" data-i18n="set_new_pass_msg">A secure link has been detected. Please enter
+                your new password below.</p>
+            <form id="reset-verify-form">
+                <input type="hidden" id="reset-token-hidden">
+
+                <div class="form-group">
+                    <label data-i18n="new_password">New Password</label>
+                    <input type="password" id="reset-new-pass" class="glass-input" required data-i18n="min_6_chars"
+                        placeholder="Minimum 6 characters">
+                </div>
+                <button type="submit" class="btn-primary full-width" data-i18n="reset_password">Reset
+                    Password</button>
+        </div>
+    </div>
+</div>
+<!-- Trash Modal -->
+<div id="trash-modal" class="modal hidden">
+    <div class="modal-content glass card animate-scale">
+        <div class="modal-header">
+            <h3 data-i18n="deleted_items">Deleted Items</h3>
+            <button class="btn-icon" onclick="closeModal('trash-modal')" data-i18n="close">Close</button>
+        </div>
+        <div id="trash-list" class="scroll-list" style="max-height: 400px;">
+            <!-- Deleted items will be rendered here -->
+        </div>
+    </div>
+</div>
+</div>
+
+
+<!-- Bulk Action Bar -->
+<div id="bulk-action-bar" class="bulk-bar hidden glass animate-slide-up">
+    <div class="container flex-between">
+        <div class="bulk-info">
+            <span id="selected-count">0</span> <span data-i18n="items_selected">items selected</span>
+        </div>
+        <div class="bulk-buttons flex-center" style="gap: 10px;">
+            <button class="btn-secondary small" onclick="window.bulkExport()" data-i18n="bulk_export">Export
+                Selected</button>
+            <button class="btn-danger small" onclick="window.bulkDelete()" data-i18n="bulk_delete">Delete
+                Selected</button>
+            <button class="btn-ghost small" onclick="window.clearSelection()" data-i18n="cancel">Cancel</button>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- Notification Toast -->
+<div id="toast-container" class="toast-container"></div>
+{{end}}

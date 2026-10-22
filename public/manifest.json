@@ -1,0 +1,17 @@
+{
+    "name": "Personal Expense Tracker",
+    "short_name": "Expenses",
+    "description": "Premium personal finance tracking with AI insights.",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#06b6d4",
+    "icons": [
+        {
+            "src": "https://cdn-icons-png.flaticon.com/512/1041/1041916.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ]
+}
